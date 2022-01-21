@@ -1,4 +1,17 @@
+require('dotenv').config();
 
+const {CONNECTION_STRING} = process.env;
+
+const Sequelize = require('sequelize');
+
+const sequelize = new Sequelize(CONNECTION_STRING, {
+    dialect: 'postgres',
+    dialectOptions: {
+        ssl: {
+            rejectUnauthorized: false
+        }
+    }
+  })
 
 module.exports = {
     seed: (req, res) => {
@@ -11,7 +24,12 @@ module.exports = {
                 name varchar
             );
 
-            *****YOUR CODE HERE*****
+            create table cities (
+                city_id serial primary key,
+                name varchar,
+                rating integer,
+                country_id integer references countries(country_id)
+            );
 
             insert into countries (name)
             values ('Afghanistan'),
@@ -213,5 +231,24 @@ module.exports = {
             console.log('DB seeded!')
             res.sendStatus(200)
         }).catch(err => console.log('error seeding DB', err))
+    },
+    getCountries: (req, res) =>{
+        sequelize.query(`select * from countries`)
+        .then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => console.log(err))
+    },
+    createCity: (req, res) =>{
+        let {name, rating, countryId} = req.body
+        sequelize.query(`INSERT INTO cities(name, rating, country_id)
+        VALUES('${name}', ${rating}, ${countryId})`)
+        .then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err=> console.log(err))
+    },
+    getCities: (req, res) =>{
+        sequelize.query(`SELECT c.city_id, c.name as city, c.rating, co.country_id as country, co.name 
+        FROM cities AS c
+        JOIN countries AS co on c.city_id = co.country_id`)
+        .then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => console.log(err))
     }
 }
